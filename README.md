@@ -1,2 +1,2 @@
 # purchased_Bike
-Un pequeño ejercicio de comparar los metodos predictivos para detectar la compra de bicicletas
+A small exercise of comparing some prediction models and review some modeling-evaluation metrics
