@@ -1,4 +1,27 @@
+---
+title: 'Supervised learning: Classification'
+author: "Cesar Conejo"
+date: "March 11, 2020"
+output: pdf_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Machine learning: Supervised learning.
+
+Currently, lots of people talk about machine learning and its applications. People consider that the success of companies rests in the opportunity of applying ML techniques in your business. In this way, it is important having some knowledge about these techniques and more importantly how to use these techniques. 
+
+The idea of this project is to show some of the techniques available in machine learning, and we are going to start with one of the big branches: supervised learning methodologies. Supervised learning scenario occurs when "a set of variables that might be denoted as inputs have some influence on one or more outputs" (Hastie, Tibshirani, and Friedman, 2009). The purpose of supervised learning is to use the inputs to predict the values of the outputs.  
+
+On the other hand, depending on the characteristic of the output, we have different problems. If the output is a quantitative variable, we have a **regression problem**. In case that the output is qualitative, we have a **classification problem**. However, in the case of some qualitative outcomes with two classes, we can use regression techniques into classification problems.
+
+## Classification
+
+The focus of the section is to consider the classification problem, then compare some techniques in one simple exercise and finally to use a cross-validation method for estimating the prediction error. All these steps are made in R program using the following libraries:
+
+```{r package, message = FALSE, warning= FALSE}
 library(tidyverse)    #ggplot
 library(kknn)         #kknn
 library(e1071)        #svm
@@ -6,61 +29,58 @@ library(rpart)        #tree
 library(randomForest) #RF
 library(ada)          #Boost
 library(caret)        #CV
-
-# ML can be divided in two branch. Supervised and unsupervised methods.
-# Focus in supervised, specially, clasification 
-
-# Using the file  purchasedBikes.csv. This table contains 11 predictible variable and the binary class as output  PurchasedBike. It indicates if a customer buy or not a bycicle.
+```
 
 
-purchased_bike <- read.table("Data/purchasedBikes.csv", header = TRUE, sep = ";", dec = ",", row.names =  1)
+```{r load_true, echo=FALSE}
+purchased_bike <- read.table("C:/Users/CCONE/Documents/Cesar_Conejo/03-Data_Science/00-DS_Projects/Versionamiento_R/Purchased_Bike/purchased_Bike/Data/purchasedBikes.csv", header = TRUE, sep = ";", dec = ",", row.names =  1)
+```
 
-# Detail
+Using the "purchased bikes" file (see <https://github.com/cconejov/purchased_Bike/tree/master/Data>), this table contains 11 predictable variables and the binary class as output PurchasedBike. It indicates if a customer bought or not a bicycle.
+
+```{r load_false, eval=FALSE}
+purchased_bike <- read.table("purchasedBikes.csv", 
+                              header = TRUE,
+                              sep = ";",
+                              dec = ",",
+                              row.names = 1)
+```
+
+
+A summary of the data can be seen with this instruction:
+
+```{r sum_data}
 summary(purchased_bike)
-pairs(purchased_bike)
+```
 
+Because the purpose of this exercise is to compare the performance of some techniques, we can see that the outcome variable _PurchasedBike_ is well balanced (48% of the observations in the data set corresponding to Yes value).
 
-# Balanced data
+```{r plot_balac}
 ggplot(data = purchased_bike) +
   geom_bar(aes( x = PurchasedBike, fill = PurchasedBike)) +
     labs(title = "Distribution Purchased Bike")  
+```
 
 
+The goal of this exercise is to compare several classification techniques with this example table. Here, the purpose is to predict Yes value in the PurchasedBike using ten cross-validations with 5 groups with the methods:
 
-n <- dim(purchased_bike)[1] #Numero de Filas 100
+* Support Vector Machine
+* KNN
+* Bayes
+* Decision tree
+* Random Forest
+* Boosting methods (AdaBoost)
 
-# The goal of this exercise is to compare several clasification techiques with this example table. 
-# Here, the purpose is to predict Yes value in the PurchasedBike using ten cross validation with 5 groups with the methods:
+Furthermore, the two metrics that we are going to use for determining how good our model is are:
 
-## Support Vector Machine
-## KNN
-## Bayes
-## Decision tree
-## Random Forest
-## Boosting methods (AdaBoost)
+* How many "yes" purchase bike variable the model detects. High values are best.
+* Minimum average global error, calculated as 1 - accuracy, where accuracy is calculated as the number of correct predictions divided by the number of total predictions.  Low values are best.
 
+For determining the number of "yes" in the _PurchasedBike_ and the average global error, we do the following code:
 
-# We will graph 10 iteraction por each one of this methods
-
-# Also, we are going to see the average of the global error in the diferent groups 
-
-#El objetivo de este ejercicio es comparar todos los metodos predictivos vistos en el curso con esta tabla de datos.
-#Aqui interesa predecir el Yes en la variable PurchasedBike, para esto genere 10 Validaciones Cruzadas con 5 groups para 
-#los metodos SVM, KNN, Bayes, treees, RFs, boosting y Redes Neuronales. 
-#Luego grafique las 10 iteraciones para todos los metodos en el mismo grafico. 
-#Se puede determinar con claridad cual metodos es el mejor?
-  
-#Repita el ejercicio anterior, pero esta vez en lugar de sumar los Yes detectados, promedie los errores globales cometidos en los diferentes groups (folds). 
-
-#Luego grafique las 10 itereaciones para los tres algoritmos en el mismo grafico. Se puede determinar con claridad cual algoritmo es el mejor?
-
-###############
-# para determinar la cantidad de Yes en la variable PurchasedBike y el promedio de los errores globales, ejecutamos el siguiente codigo:
-
-
-# Determine the number of "yes" in the PurchasedBike
-# Average of global error
-
+```{r code}
+#Number of observation
+n <- dim(purchased_bike)[1]
 
 #SVM
 yes_detect_svm   <- rep(0,10)
@@ -85,11 +105,6 @@ error_detect_RF <- rep(0,10)
 #boosting
 yes_detect_boosting   <- rep(0,10)
 error_detect_boosting <- rep(0,10)
-
-#Red Neuronal
-##yes_detect_red   <- rep(0,10)
-##error_detect_red <- rep(0,10)
-
 
 # cross validation 10 times
 for(i in 1:10) {  #10
@@ -118,10 +133,6 @@ for(i in 1:10) {  #10
   #boosting
   yes_boosting   <- 0
   error_boosting <- 0
-  
-  #Red Neuronal
-  ##si.red    <- 0
-  ##error_red <- 0
   
   # This for does "cross-validation"  with 5 groups (Folds)
   for(k in 1:5) {   #5 
@@ -195,17 +206,7 @@ for(i in 1:10) {  #10
     yes_boosting <- yes_boosting + MC[2,2]
     # Error detection
     error_boosting <- error_boosting + (1-(sum(diag(MC)))/sum(MC))*100
-    
-    #Red Neuronal
-    ##model<-nnet(PurchasedBike~.,data=tlearning,size=5,rang=0.1,decay=5e-4,maxit=100,trace=FALSE)
-    ##prediction<-predict(model, ttesting[,-12],type = "class")
-    ##Actual<-ttesting[,12]
-    ##MC<-table(Actual,prediction)
-    # Detección de los SI compradores
-    ##MC <- MatrizConfusionRN(MC)
-    ##si.red <- si.red + MC[2,2]
-    # Detección del ERROR 
-    ## error_red<-error_red + (1-(sum(diag(MC)))/sum(MC))*100
+
   }
   
   #SVM  
@@ -220,7 +221,7 @@ for(i in 1:10) {  #10
   yes_detect_bayes[i]   <- yes_bayes
   error_detect_bayes[i] <- error_bayes/5
   
-  #treees
+  #trees
   yes_detect_tree[i]   <- yes_tree
   error_detect_tree[i] <- error_tree/5
   
@@ -231,13 +232,12 @@ for(i in 1:10) {  #10
   #boosting
   yes_detect_boosting[i]   <- yes_boosting
   error_detect_boosting[i] <- error_boosting/5
-  
-  #Red Neuronal
-  #yes_detect_red[i] <- si.red
-  #error_detect_red[i] <- error_red/5
 }
+```
 
-# En este caso, vemos como el model de RFs aleatorios es el que tiene una mayor deteccion de los si compradores en las 10 iteraciones solo proximado por el metodo de KNN en la iteracion numero 6. Para el caso delo error global el plot se puede obtener ejecutando el siguiente codigo:
+Finally, we create three auxiliary tables for showing the results:
+
+```{r aux_table}
 
 colors <- c("SVM"      = "blue", 
             "KNN"      = "red",
@@ -255,6 +255,18 @@ detect <- tibble(Iteration = seq(1,10),
                  RF   = yes_detect_RF,
                  Boost = yes_detect_boosting)
 
+global_error <- tibble(Iteration = seq(1,10), 
+                 SVM = error_detect_svm, 
+                 KNN = error_detect_knn,
+                 Bayes = error_detect_bayes,
+                 Tree = error_detect_tree,
+                 RF   = error_detect_RF,
+                 Boost = error_detect_boosting)
+```
+
+The plot with the yes value detection shows us that the metho random forest has on average the best capacity for detecting the positive cases of bikes purchased.
+
+```{r g1_yes_det}
 ggplot(data = detect, aes(x = Iteration) ) +
   geom_line(aes( y = SVM, color = "SVM") ) +
   geom_line(aes( y = KNN, color = "KNN")) +
@@ -269,20 +281,11 @@ ggplot(data = detect, aes(x = Iteration) ) +
        title = "Quantity of Purchased bike variable"
        ) +
   scale_color_manual(values = colors)
+```
 
-############################
-# Global error
-############################
+Besides, Random forest also has the lest average global error, so this method also classifies very well the negative case of bike did not purchase.
 
-global_error <- tibble(Iteration = seq(1,10), 
-                 SVM = error_detect_svm, 
-                 KNN = error_detect_knn,
-                 Bayes = error_detect_bayes,
-                 Tree = error_detect_tree,
-                 RF   = error_detect_RF,
-                 Boost = error_detect_boosting)
-
-
+```{r g2_global_error}
 ggplot(data = global_error, aes(x = Iteration) ) +
   geom_line(aes( y = SVM, color = "SVM") ) +
   geom_line(aes( y = KNN, color = "KNN")) +
@@ -297,25 +300,5 @@ ggplot(data = global_error, aes(x = Iteration) ) +
        title = "Average global error by iteration"
   ) +
   scale_color_manual(values = colors)
+```
 
-## PLOT R BASE
-# PLOT DE DETECCION DE SI COMPRADORES
-plot(yes_detect_svm, col = "magenta", type = "b",  ylim = c(min(yes_detect_svm,yes_detect_knn,yes_detect_bayes,yes_detect_tree,yes_detect_RF,yes_detect_boosting), max(yes_detect_svm,yes_detect_knn,yes_detect_bayes,yes_detect_tree,yes_detect_RF,yes_detect_boosting)+0.05), main = "Yes purchase detection", xlab = "Número de iteración", ylab = "Quantity of yes purchased detection")
-points(yes_detect_knn, col = "blue", type = "b")
-points(yes_detect_bayes, col = "red", type = "b")
-points(yes_detect_tree, col = "lightblue3", type = "b")
-points(yes_detect_RF, col = "olivedrab", type = "b")
-points(yes_detect_boosting, col = "orange3", type = "b")
-#points(yes_detect_red, col = "rosybrown4", type = "b")
-legend("topright", legend = c("SVM","KNN","Bayes","Árbol","RF","Potenciación")
-       , col = c("magenta", "blue","red","lightblue3","olivedrab","orange3"), lty = 1, lwd = 1)
-
-
-
-plot(error_detect_svm, col = "magenta", type = "b",  ylim = c(min(error_detect_svm,error_detect_knn,error_detect_bayes,error_detect_tree,error_detect_RF,error_detect_boosting), max(error_detect_svm,error_detect_knn,error_detect_bayes,error_detect_tree,error_detect_RF,error_detect_boosting)+3), main = "Detección del ERROR", xlab = "Número de iteración", ylab = "ERROR Cometido")
-points(error_detect_knn, col = "blue", type = "b")
-points(error_detect_bayes, col = "red", type = "b")
-points(error_detect_tree, col = "lightblue3", type = "b")
-points(error_detect_RF, col = "olivedrab", type = "b")
-points(error_detect_boosting, col = "orange3", type = "b")
-legend("topright", legend = c("SVM","KNN","Bayes","Árbol","RF","Potenciación"), col = c("magenta", "blue","red","lightblue3","olivedrab","orange3"), lty = 1, lwd = 2)
