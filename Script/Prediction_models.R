@@ -1,223 +1,324 @@
-suppressWarnings(suppressMessages(library(kknn)))
-suppressWarnings(suppressMessages(library(e1071)))
-suppressWarnings(suppressMessages(library(class)))
-suppressWarnings(suppressMessages(library(rpart)))
-suppressWarnings(suppressMessages(library(randomForest)))
-suppressWarnings(suppressMessages(library(ada)))
-suppressWarnings(suppressMessages(library(ROCR)))
-suppressWarnings(suppressMessages(library(caret)))
-suppressWarnings(suppressMessages(library(ggplot2))
 
-# Para esta pregunta usaremos los datos CompraBicicletas.csv, esta tabla contiene 11 variables predictoras y el PurchasedBike que es la variable a predecir, la cual indica si un cliente compro o no una bicicleta.
+library(tidyverse)
+library(kknn)
+library(e1071)
+library(class)
+library(rpart)
+library(randomForest)
+library(ada)
+library(ROCR)
+library(caret)
 
-purchased.bike <- read.table("Data/purchasedBikes.csv", header = TRUE, sep = ";", dec = ",", row.names =  1)
+# ML can be divided in two branch. Supervised and unsupervised methods.
+# Focus in supervised, specially, clasification 
 
-n <- dim(purchased.bike)[1] #Numero de Filas
+# Using the file  purchasedBikes.csv. This table contains 11 predictible variable and the binary class as output  PurchasedBike. It indicates if a customer buy or not a bycicle.
 
-dim(purchased.bike)
 
-summary(purchased.bike)
+purchased_bike <- read.table("Data/purchasedBikes.csv", header = TRUE, sep = ";", dec = ",", row.names =  1)
 
-#El objetivo de este ejercicio es comparar todos los metodos predictivos vistos en el curso con esta tabla de datos. Aqui interesa predecir el Yes en la variable PurchasedBike, para esto genere 10 Validaciones Cruzadas con 5 grupos para los metodos SVM, KNN, Bayes, Arboles, Bosques, Potenciacion y Redes Neuronales. Luego grafique las 10 iteraciones para todos los metodos en el mismo grafico. Se puede determinar con claridad cual metodos es el mejor?
+# Detail
+summary(purchased_bike)
+pairs(purchased_bike)
+
+
+# Balanced data
+ggplot(data = purchased_bike) +
+  geom_bar(aes( x = PurchasedBike, fill = PurchasedBike)) +
+    labs(title = "Distribution Pirchased Bike")  
+
+
+
+n <- dim(purchased_bike)[1] #Numero de Filas 100
+
+# The goal of this exercise is to compare several clasification techiques with this example table. 
+# Here, the purpose is to predict Yes value in the PurchasedBike using ten cross validation with 5 groups with the methods:
+
+## Support Vector Machine
+## KNN
+## Bayes
+## Decision tree
+## Random Forest
+## Boosting methods (AdaBoost)
+
+
+# We will graph 10 iteraction por each one of this methods
+
+# Also, we are going to see the average of the global error in the diferent groups 
+
+#El objetivo de este ejercicio es comparar todos los metodos predictivos vistos en el curso con esta tabla de datos.
+#Aqui interesa predecir el Yes en la variable PurchasedBike, para esto genere 10 Validaciones Cruzadas con 5 groups para 
+#los metodos SVM, KNN, Bayes, treees, RFs, boosting y Redes Neuronales. 
+#Luego grafique las 10 iteraciones para todos los metodos en el mismo grafico. 
+#Se puede determinar con claridad cual metodos es el mejor?
   
-#Repita el ejercicio anterior, pero esta vez en lugar de sumar los Yes detectados, promedie los errores globales cometidos en los diferentes grupos (folds). Luego grafique las 10 itereaciones para los tres algoritmos en el mismo grafico. Se puede determinar con claridad cual algoritmo es el mejor?
+#Repita el ejercicio anterior, pero esta vez en lugar de sumar los Yes detectados, promedie los errores globales cometidos en los diferentes groups (folds). 
+
+#Luego grafique las 10 itereaciones para los tres algoritmos en el mismo grafico. Se puede determinar con claridad cual algoritmo es el mejor?
 
 ###############
 # para determinar la cantidad de Yes en la variable PurchasedBike y el promedio de los errores globales, ejecutamos el siguiente codigo:
 
 
+# Determine the number of "yes" in the PurchasedBike
+# Average of global error
+
+
 #SVM
-deteccion.yes.svm <- rep(0,10)
-deteccion.error.svm <- rep(0,10)
+yes_detect_svm <- rep(0,10)
+error_detect_svm <- rep(0,10)
 
 #KNN
-deteccion.yes.knn <- rep(0,10)
-deteccion.error.knn <- rep(0,10)
+yes_detect_knn <- rep(0,10)
+error_detect_knn <- rep(0,10)
 
 #Bayes
-deteccion.yes.bayes <- rep(0,10)
-deteccion.error.bayes <- rep(0,10)
+yes_detect_bayes <- rep(0,10)
+error_detect_bayes <- rep(0,10)
 
-#Arboles
-deteccion.yes.arbol <- rep(0,10)
-deteccion.error.arbol <- rep(0,10)
+#trees
+yes_detect_tree <- rep(0,10)
+error_detect_tree <- rep(0,10)
 
-#Bosques
-deteccion.yes.bosque<-rep(0,10)
-deteccion.error.bosque<-rep(0,10)
+#RFs
+yes_detect_RF<-rep(0,10)
+error_detect_RF<-rep(0,10)
 
-#Potenciacion
-deteccion.yes.potenciacion<-rep(0,10)
-deteccion.error.potenciacion<-rep(0,10)
+#boosting
+yes_detect_boosting<-rep(0,10)
+error_detect_boosting<-rep(0,10)
 
 #Red Neuronal
-##deteccion.yes.red<-rep(0,10)
-##deteccion.error.red<-rep(0,10)
+##yes_detect_red<-rep(0,10)
+##error_detect_red<-rep(0,10)
 
 
-# Validación cruzada 10 veces
-for(i in 1:10) {
-  grupos <- createFolds(1:n,5) # Crea los 5 grupos
+# cross validation 10 times
+for(i in 1:10) {  #10
+  groups <- createFolds(1:n,5) #5 groups
   
   #SVM
-  yes.svm <- 0
-  error.svm <- 0
+  yes_svm   <- 0
+  error_svm <- 0
+  auc_svm   <- 0
   
   #KNN
-  yes.knn <- 0
-  error.knn <- 0
+  yes_knn <- 0
+  error_knn <- 0
   
   #Bayes
-  yes.bayes <- 0
-  error.bayes <- 0
+  yes_bayes <- 0
+  error_bayes <- 0
   
-  #Arboles
-  yes.arbol <- 0
-  error.arbol <- 0
+  #treees
+  yes_tree <- 0
+  error_tree <- 0
   
-  #Bosques
-  yes.bosque <- 0
-  error.bosque <- 0
+  #RFs
+  yes_RF <- 0
+  error_RF <- 0
   
-  #Potenciacion
-  yes.potenciacion <- 0
-  error.potenciacion <- 0
+  #boosting
+  yes_boosting <- 0
+  error_boosting <- 0
   
   #Red Neuronal
   ##si.red <- 0
-  ##error.red <- 0
+  ##error_red <- 0
   
-  # Este ciclo es el que hace "cross-validation" (validación cruzada) con 5 grupos (Folds)
-  for(k in 1:5) {    
+  # This for does "cross-validation"  with 5 groups (Folds)
+  for(k in 1:5) {   #5 
     
-    training  <- grupos[[k]] # Por ser una lista requiere de doble paréntesis
-    ttesting  <- purchased.bike[training,]
-    tlearning <- purchased.bike[-training,]
+    training  <- groups[[k]]              #list
+    ttesting  <- purchased_bike[training,]
+    tlearning <- purchased_bike[-training,]
     
     #SVM
-    modelo      <- svm(PurchasedBike~., data = tlearning, kernel ="radial")
-    prediccion  <- predict(modelo, ttesting)
+    model      <- svm(PurchasedBike~., data = tlearning, kernel ="radial")
+    prediction  <- predict(model, ttesting)
     Actual      <- ttesting[, 12]
-    MC          <- table(Actual, prediccion)
+    MC          <- table(Actual, prediction)
     
     # Detección de los SI compradores
-    yes.svm <- yes.svm + MC[2,2]
+    yes_svm <- yes_svm + MC[2,2]
     # Detección del ERROR
-    error.svm <- error.svm + (1 - (sum(diag(MC)))/sum(MC))*100
-    
+    error_svm <- error_svm + (1 - (sum(diag(MC)))/sum(MC))*100
+
     #KNN
-    modelo     <- train.kknn(PurchasedBike~., data = tlearning, kmax = 7)
-    prediccion <- predict(modelo,ttesting[, -12])
+    model     <- train.kknn(PurchasedBike~., data = tlearning, kmax = 7)
+    prediction <- predict(model,ttesting[, -12])
     Actual     <- ttesting[, 12]
-    MC         <- table(Actual, prediccion)
+    MC         <- table(Actual, prediction)
     
     # Detección de los SI compradores
-    yes.knn <- yes.knn + MC[2,2]
+    yes_knn <- yes_knn + MC[2,2]
     # Detección del ERROR
-    error.knn <- error.knn + (1 - (sum(diag(MC)))/sum(MC))*100
+    error_knn <- error_knn + (1 - (sum(diag(MC)))/sum(MC))*100
     
     #Bayes
-    modelo     <- naiveBayes(PurchasedBike~., data = tlearning)
-    prediccion <- predict(modelo, ttesting[,-12])
+    model     <- naiveBayes(PurchasedBike~., data = tlearning)
+    prediction <- predict(model, ttesting[,-12])
     Actual     <- ttesting[,12]
-    MC         <- table(Actual, prediccion)
+    MC         <- table(Actual, prediction)
     
     #Detección de los SI compradores
-    yes.bayes <- yes.bayes + MC[2,2]
+    yes_bayes <- yes_bayes + MC[2,2]
     # Detección del ERROR
-    error.bayes <- error.bayes + (1 - (sum(diag(MC)))/sum(MC))*100
+    error_bayes <- error_bayes + (1 - (sum(diag(MC)))/sum(MC))*100
     
-    #Arboles
-    modelo     <- rpart(PurchasedBike~. ,data = tlearning)
-    prediccion <- predict(modelo, ttesting, type='class')
+    #treees
+    model     <- rpart(PurchasedBike~. ,data = tlearning)
+    prediction <- predict(model, ttesting, type='class')
     Actual     <- ttesting[, 12]
-    MC         <- table(Actual, prediccion)
+    MC         <- table(Actual, prediction)
     
     #Detección de los SI compradores
-    yes.arbol <- yes.arbol + MC[2,2]
+    yes_tree <- yes_tree + MC[2,2]
     # Detección del ERROR
-    error.arbol <- error.arbol + (1 - (sum(diag(MC)))/sum(MC))*100
+    error_tree <- error_tree + (1 - (sum(diag(MC)))/sum(MC))*100
     
-    #Bosques
-    modelo     <- randomForest(PurchasedBike~., data = tlearning, importance=TRUE)
-    prediccion <- predict(modelo, ttesting[, -12])
+    #RFs
+    model     <- randomForest(PurchasedBike~., data = tlearning, importance=TRUE)
+    prediction <- predict(model, ttesting[, -12])
     Actual     <- ttesting[, 12]
-    MC         <- table(Actual, prediccion)
+    MC         <- table(Actual, prediction)
     
     #Detección de los SI compradores
-    yes.bosque <- yes.bosque + MC[2,2]
+    yes_RF <- yes_RF + MC[2,2]
     # Detección del ERROR 
-    error.bosque <- error.bosque + (1 - (sum(diag(MC)))/sum(MC))*100
+    error_RF <- error_RF + (1 - (sum(diag(MC)))/sum(MC))*100
     
-    #Potenciacion
-    modelo     <- ada(PurchasedBike~., data = tlearning, iter=20, nu = 1, type = "discrete")
-    prediccion <- predict(modelo, ttesting[, -12])
+    #boosting
+    model     <- ada(PurchasedBike~., data = tlearning, iter=20, nu = 1, type = "discrete")
+    prediction <- predict(model, ttesting[, -12])
     Actual     <- ttesting[, 12]
-    MC         <- table(Actual, prediccion)
+    MC         <- table(Actual, prediction)
     
     #Detección de los SI compradores
-    yes.potenciacion <- yes.potenciacion + MC[2,2]
+    yes_boosting <- yes_boosting + MC[2,2]
     # Detección del ERROR 
-    error.potenciacion <- error.potenciacion + (1-(sum(diag(MC)))/sum(MC))*100
+    error_boosting <- error_boosting + (1-(sum(diag(MC)))/sum(MC))*100
     
     #Red Neuronal
-    ##modelo<-nnet(PurchasedBike~.,data=tlearning,size=5,rang=0.1,decay=5e-4,maxit=100,trace=FALSE)
-    ##prediccion<-predict(modelo, ttesting[,-12],type = "class")
+    ##model<-nnet(PurchasedBike~.,data=tlearning,size=5,rang=0.1,decay=5e-4,maxit=100,trace=FALSE)
+    ##prediction<-predict(model, ttesting[,-12],type = "class")
     ##Actual<-ttesting[,12]
-    ##MC<-table(Actual,prediccion)
+    ##MC<-table(Actual,prediction)
     # Detección de los SI compradores
     ##MC <- MatrizConfusionRN(MC)
     ##si.red <- si.red + MC[2,2]
     # Detección del ERROR 
-    ## error.red<-error.red + (1-(sum(diag(MC)))/sum(MC))*100
+    ## error_red<-error_red + (1-(sum(diag(MC)))/sum(MC))*100
   }
   
   #SVM  
-  deteccion.yes.svm[i]   <- yes.svm
-  deteccion.error.svm[i] <- error.svm/5
+  yes_detect_svm[i]   <- yes_svm
+  error_detect_svm[i] <- error_svm/5
   
   #KNN
-  deteccion.yes.knn[i]   <- yes.knn
-  deteccion.error.knn[i] <- error.knn/5
+  yes_detect_knn[i]   <- yes_knn
+  error_detect_knn[i] <- error_knn/5
   
   #Bayes
-  deteccion.yes.bayes[i]   <- yes.bayes
-  deteccion.error.bayes[i] <- error.bayes/5
+  yes_detect_bayes[i]   <- yes_bayes
+  error_detect_bayes[i] <- error_bayes/5
   
-  #Arboles
-  deteccion.yes.arbol[i]   <- yes.arbol
-  deteccion.error.arbol[i] <- error.arbol/5
+  #treees
+  yes_detect_tree[i]   <- yes_tree
+  error_detect_tree[i] <- error_tree/5
   
-  #Bosque
-  deteccion.yes.bosque[i]   <- yes.bosque
-  deteccion.error.bosque[i] <- error.bosque/5
+  #RF
+  yes_detect_RF[i]   <- yes_RF
+  error_detect_RF[i] <- error_RF/5
   
-  #Potenciacion
-  deteccion.yes.potenciacion[i]   <- yes.potenciacion
-  deteccion.error.potenciacion[i] <- error.potenciacion/5
+  #boosting
+  yes_detect_boosting[i]   <- yes_boosting
+  error_detect_boosting[i] <- error_boosting/5
   
   #Red Neuronal
-  #deteccion.yes.red[i] <- si.red
-  #deteccion.error.red[i] <- error.red/5
+  #yes_detect_red[i] <- si.red
+  #error_detect_red[i] <- error_red/5
 }
+
+# En este caso, vemos como el model de RFs aleatorios es el que tiene una mayor deteccion de los si compradores en las 10 iteraciones solo proximado por el metodo de KNN en la iteracion numero 6. Para el caso delo error global el plot se puede obtener ejecutando el siguiente codigo:
+
+colors <- c("SVM"      = "blue", 
+            "KNN"      = "red",
+            "Bayes"    =  "orange",
+            "Tree"     = "purple",
+            "RF"       = "black",
+            "Boost" = "green"
+)
+
+detect <- tibble(Iteration = seq(1,10), 
+                 SVM = yes_detect_svm, 
+                 KNN = yes_detect_knn,
+                 Bayes = yes_detect_bayes,
+                 Tree = yes_detect_tree,
+                 RF   = yes_detect_RF,
+                 Boost = yes_detect_boosting)
+
+ggplot(data = detect, aes(x = Iteration) ) +
+  geom_line(aes( y = SVM, color = "SVM") ) +
+  geom_line(aes( y = KNN, color = "KNN")) +
+  geom_line(aes( y = Bayes, color = "Bayes")) +
+  geom_line(aes( y = Tree, color = "Tree")) +
+  geom_line(aes( y = RF, color = "RF"), size = 1) +
+  geom_line(aes( y = Boost, color = "Boost")) +
+  scale_x_continuous(breaks=c(1:10), labels=c(1:10),limits=c(1,10)) +
+  labs(x = "Iteration",
+       y = "Yes detection",
+       color = "Method",
+       title = "Quantity of Purchased bike variable"
+       ) +
+  scale_color_manual(values = colors)
+
+############################
+# Global error
+############################
+
+global_error <- tibble(Iteration = seq(1,10), 
+                 SVM = error_detect_svm, 
+                 KNN = error_detect_knn,
+                 Bayes = error_detect_bayes,
+                 Tree = error_detect_tree,
+                 RF   = error_detect_RF,
+                 Boost = error_detect_boosting)
+
+
+ggplot(data = global_error, aes(x = Iteration) ) +
+  geom_line(aes( y = SVM, color = "SVM") ) +
+  geom_line(aes( y = KNN, color = "KNN")) +
+  geom_line(aes( y = Bayes, color = "Bayes")) +
+  geom_line(aes( y = Tree, color = "Tree")) +
+  geom_line(aes( y = RF, color = "RF"), size = 1) +
+  geom_line(aes( y = Boost, color = "Boost")) +
+  scale_x_continuous(breaks=c(1:10), labels=c(1:10),limits=c(1,10)) +
+  labs(x = "Iteration",
+       y = "AVG global Error",
+       color = "Method",
+       title = "Average global error by iteration"
+  ) +
+  scale_color_manual(values = colors)
+
+## PLOT R BASE
 # PLOT DE DETECCION DE SI COMPRADORES
-plot(deteccion.yes.svm, col = "magenta", type = "b",  ylim = c(min(deteccion.yes.svm,deteccion.yes.knn,deteccion.yes.bayes,deteccion.yes.arbol,deteccion.yes.bosque,deteccion.yes.potenciacion), max(deteccion.yes.svm,deteccion.yes.knn,deteccion.yes.bayes,deteccion.yes.arbol,deteccion.yes.bosque,deteccion.yes.potenciacion)+0.05), main = "Yes purchase detection", xlab = "Número de iteración", ylab = "Quantity of yes purchased detection")
-points(deteccion.yes.knn, col = "blue", type = "b")
-points(deteccion.yes.bayes, col = "red", type = "b")
-points(deteccion.yes.arbol, col = "lightblue3", type = "b")
-points(deteccion.yes.bosque, col = "olivedrab", type = "b")
-points(deteccion.yes.potenciacion, col = "orange3", type = "b")
-#points(deteccion.yes.red, col = "rosybrown4", type = "b")
-legend("topright", legend = c("SVM","KNN","Bayes","Árbol","Bosque","Potenciación"), col = c("magenta", 
-                                                                                                           "blue","red","lightblue3","olivedrab","orange3"), lty = 1, lwd = 1)
-
-# En este caso, vemos como el modelo de Bosques aleatorios es el que tiene una mayor deteccion de los si compradores en las 10 iteraciones solo proximado por el metodo de KNN en la iteracion numero 6. Para el caso delo error global el plot se puede obtener ejecutando el siguiente codigo:
+plot(yes_detect_svm, col = "magenta", type = "b",  ylim = c(min(yes_detect_svm,yes_detect_knn,yes_detect_bayes,yes_detect_tree,yes_detect_RF,yes_detect_boosting), max(yes_detect_svm,yes_detect_knn,yes_detect_bayes,yes_detect_tree,yes_detect_RF,yes_detect_boosting)+0.05), main = "Yes purchase detection", xlab = "Número de iteración", ylab = "Quantity of yes purchased detection")
+points(yes_detect_knn, col = "blue", type = "b")
+points(yes_detect_bayes, col = "red", type = "b")
+points(yes_detect_tree, col = "lightblue3", type = "b")
+points(yes_detect_RF, col = "olivedrab", type = "b")
+points(yes_detect_boosting, col = "orange3", type = "b")
+#points(yes_detect_red, col = "rosybrown4", type = "b")
+legend("topright", legend = c("SVM","KNN","Bayes","Árbol","RF","Potenciación")
+       , col = c("magenta", "blue","red","lightblue3","olivedrab","orange3"), lty = 1, lwd = 1)
 
 
-plot(deteccion.error.svm, col = "magenta", type = "b",  ylim = c(min(deteccion.error.svm,deteccion.error.knn,deteccion.error.bayes,deteccion.error.arbol,deteccion.error.bosque,deteccion.error.potenciacion), max(deteccion.error.svm,deteccion.error.knn,deteccion.error.bayes,deteccion.error.arbol,deteccion.error.bosque,deteccion.error.potenciacion)+3), main = "Detección del ERROR", xlab = "Número de iteración", ylab = "ERROR Cometido")
-points(deteccion.error.knn, col = "blue", type = "b")
-points(deteccion.error.bayes, col = "red", type = "b")
-points(deteccion.error.arbol, col = "lightblue3", type = "b")
-points(deteccion.error.bosque, col = "olivedrab", type = "b")
-points(deteccion.error.potenciacion, col = "orange3", type = "b")
-legend("topright", legend = c("SVM","KNN","Bayes","Árbol","Bosque","Potenciación"), col = c("magenta", "blue","red","lightblue3","olivedrab","orange3"), lty = 1, lwd = 2)
+
+plot(error_detect_svm, col = "magenta", type = "b",  ylim = c(min(error_detect_svm,error_detect_knn,error_detect_bayes,error_detect_tree,error_detect_RF,error_detect_boosting), max(error_detect_svm,error_detect_knn,error_detect_bayes,error_detect_tree,error_detect_RF,error_detect_boosting)+3), main = "Detección del ERROR", xlab = "Número de iteración", ylab = "ERROR Cometido")
+points(error_detect_knn, col = "blue", type = "b")
+points(error_detect_bayes, col = "red", type = "b")
+points(error_detect_tree, col = "lightblue3", type = "b")
+points(error_detect_RF, col = "olivedrab", type = "b")
+points(error_detect_boosting, col = "orange3", type = "b")
+legend("topright", legend = c("SVM","KNN","Bayes","Árbol","RF","Potenciación"), col = c("magenta", "blue","red","lightblue3","olivedrab","orange3"), lty = 1, lwd = 2)
